@@ -19,7 +19,7 @@
     --ember-soft: #332a17;
     --crystal: #6ee7d8;
     --crystal-soft: #163330;
-    --danger: #c96a56;
+    --gold: #d9c087;
     --radius: 3px;
   }
 
@@ -39,12 +39,6 @@
   .wrap{ max-width: 880px; margin: 0 auto; }
 
   header{ margin-bottom: 40px; }
-  .kicker{
-    font-size: 13px;
-    letter-spacing: .04em;
-    color: var(--ember);
-    margin: 0 0 10px;
-  }
   h1{
     font-family: 'Fraunces', serif;
     font-optical-sizing: auto;
@@ -53,13 +47,6 @@
     line-height: 1.1;
     margin: 0 0 14px;
     color: var(--text);
-  }
-  header p{
-    color: var(--text-dim);
-    font-size: 15px;
-    line-height: 1.6;
-    max-width: 58ch;
-    margin: 0;
   }
 
   /* ---- settings bar ---- */
@@ -112,11 +99,19 @@
     margin-bottom: 22px;
     flex-wrap: wrap;
   }
-  .target-row .label{
+  .target-controls{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .target-controls .label{
     font-size: 13px;
     color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  select#targetTier{
+  select.tier-select{
     background: var(--panel);
     border: 1px solid var(--panel-line);
     color: var(--text);
@@ -150,7 +145,7 @@
   }
   .tier{
     display: grid;
-    grid-template-columns: 32px 1.5fr 1fr 1fr 1fr;
+    grid-template-columns: 32px 1.5fr 130px 1fr 1fr;
     align-items: center;
     gap: 14px;
     padding: 16px 4px;
@@ -211,11 +206,10 @@
     text-align: center;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: .01em;
   }
-  .toggle .opt.trade{ color: var(--ember); }
+  .toggle .opt.unbound{ color: var(--ember); }
   .toggle .opt.bound-lbl{ color: var(--text-faint); }
-  .toggle.bound .opt.trade{ color: var(--text-faint); }
+  .toggle.bound .opt.unbound{ color: var(--text-faint); }
   .toggle.bound .opt.bound-lbl{ color: var(--crystal); }
 
   .num-col{ text-align: right; }
@@ -230,9 +224,11 @@
     color: var(--text-faint);
     margin-top: 2px;
   }
+
+  .num-col.cost.unbound-cost .amt{ color: var(--gold); }
+  .num-col.cost.bound-cost .amt{ color: var(--gold); }
+
   .num-col.charcoal .amt{ color: var(--ember); }
-  .num-col.tokens .amt{ color: var(--crystal); }
-  .num-col.tokens.zero .amt{ color: var(--text-faint); font-weight: 400; }
 
   /* ---- summary ---- */
   .summary{
@@ -252,7 +248,7 @@
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
-  .summary .stat.gold .val{ color: #d9c087; }
+  .summary .stat.gold .val{ color: var(--gold); }
   .summary .stat.charcoal .val{ color: var(--ember); }
   .summary .stat.tokens .val{ color: var(--crystal); }
   .summary .stat .lbl{
@@ -261,18 +257,10 @@
     margin-top: 4px;
   }
 
-  footer{
-    margin-top: 28px;
-    font-size: 12px;
-    color: var(--text-faint);
-    line-height: 1.7;
-    max-width: 62ch;
-  }
-
   @media (max-width: 640px){
     .settings{ grid-template-columns: repeat(2,1fr); }
     .tier{
-      grid-template-columns: 22px 1fr;
+      grid-template-columns: 24px 1fr;
       grid-template-areas:
         "step name"
         ".    toggle"
@@ -282,9 +270,7 @@
     .tier .step{ grid-area: step; }
     .tier .name-col{ grid-area: name; }
     .toggle-col{ grid-area: toggle; }
-    .tier .num-col{ grid-area: nums; text-align: left; display:flex; gap:18px; }
-    .tier .num-col:nth-of-type(3){ grid-area: nums; }
-    .num-col:not(:first-of-type){ margin-top: -6px; }
+    .tier .num-col{ text-align: left; }
     .summary{ grid-template-columns: repeat(2,1fr); }
   }
 </style>
@@ -316,12 +302,18 @@
   </div>
 
   <div class="target-row">
-    <div class="label">
-      Upgrade to
-      <select id="targetTier"></select>
+    <div class="target-controls">
+      <div class="label">
+        Upgrade from
+        <select id="startTier" class="tier-select"></select>
+      </div>
+      <div class="label">
+        to
+        <select id="targetTier" class="tier-select"></select>
+      </div>
     </div>
     <div class="legend">
-      <span><span class="dot ember"></span>Tradeable</span>
+      <span><span class="dot ember"></span>Unbound</span>
       <span><span class="dot crystal"></span>Bound</span>
     </div>
   </div>
@@ -353,7 +345,20 @@
 </div>
 
 <script>
-  // Tabela com as cores fiéis às grades in-game (imagem)
+  const BASE_GRADES = [
+    { name: 'Basic (0%)', color: '#999999' },
+    { name: 'Grand',      color: '#55b255' },
+    { name: 'Rare',       color: '#3083e5' },
+    { name: 'Arcane',     color: '#ad52d6' },
+    { name: 'Heroic',     color: '#e69214' },
+    { name: 'Unique',     color: '#f06433' },
+    { name: 'Celestial',  color: '#ee3c3c' },
+    { name: 'Divine',     color: '#d66e43' },
+    { name: 'Epic',       color: '#8ba6c1' },
+    { name: 'Legendary',  color: '#e69600' },
+    { name: 'Mythic',     color: '#e61d1d' },
+  ];
+
   const TIERS = [
     { name: 'Grand',        stones: 4,  type: 'Clear',   color: '#55b255' },
     { name: 'Rare',         stones: 8,  type: 'Clear',   color: '#3083e5' },
@@ -373,7 +378,8 @@
   const TOKENS_BOUND = 5;
 
   const state = {
-    mode: TIERS.map(t => t.type !== 'Clear'), // true = bound, false = tradeable
+    mode: TIERS.map(t => t.type !== 'Clear'), // true = bound, false = unbound
+    start: 0,
     target: TIERS.length - 1,
   };
 
@@ -409,19 +415,46 @@
     return Math.round(n).toLocaleString();
   }
 
-  function buildTargetOptions(){
-    const sel = $('targetTier');
-    sel.innerHTML = '';
+  function buildTierOptions(){
+    const startSel = $('startTier');
+    const targetSel = $('targetTier');
+    
+    startSel.innerHTML = '';
+    targetSel.innerHTML = '';
+
+    BASE_GRADES.forEach((g, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = g.name;
+      opt.style.color = g.color;
+      if (i === state.start) opt.selected = true;
+      startSel.appendChild(opt);
+    });
+
     TIERS.forEach((t, i) => {
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = t.name;
-      opt.style.color = t.color; // Aplica a cor também no menu de seleção
+      opt.style.color = t.color;
       if (i === state.target) opt.selected = true;
-      sel.appendChild(opt);
+      targetSel.appendChild(opt);
     });
-    sel.addEventListener('change', () => {
-      state.target = parseInt(sel.value, 10);
+
+    startSel.addEventListener('change', () => {
+      state.start = parseInt(startSel.value, 10);
+      if (state.start > state.target) {
+        state.target = Math.min(state.start, TIERS.length - 1);
+        targetSel.value = state.target;
+      }
+      render();
+    });
+
+    targetSel.addEventListener('change', () => {
+      state.target = parseInt(targetSel.value, 10);
+      if (state.target < state.start) {
+        state.start = state.target;
+        startSel.value = state.start;
+      }
       render();
     });
   }
@@ -434,13 +467,14 @@
     let totalGold = 0, totalCharcoal = 0, totalTokens = 0, totalStones = 0, totalMisagon = 0;
 
     TIERS.forEach((t, i) => {
-      const included = i <= state.target;
+      const included = i >= state.start && i <= state.target;
       const usesCharcoal = t.type !== 'Clear';
-      const bound = state.mode[i];
-      const price = stonePrice(t.type, bound, p);
+      const isBound = state.mode[i];
+
+      const price = stonePrice(t.type, isBound, p);
       const tierGold = t.stones * price;
-      const tierCharcoal = usesCharcoal ? t.stones * (bound ? CHARCOAL_BOUND : CHARCOAL_TRADE) : 0;
-      const tierTokens = usesCharcoal && bound ? t.stones * TOKENS_BOUND : 0;
+      const tierCharcoal = usesCharcoal ? t.stones * (isBound ? CHARCOAL_BOUND : CHARCOAL_TRADE) : 0;
+      const tierTokens = usesCharcoal && isBound ? t.stones * TOKENS_BOUND : 0;
       const tierMisagon = t.stones * misagonPerStone(t.type);
 
       if (included){
@@ -461,19 +495,19 @@
           <div class="stones"><b>${t.stones}</b> ${t.type} Stone${t.stones>1?'s':''}</div>
         </div>
         <div class="toggle-col">
-          <div class="toggle ${bound ? 'bound' : ''} ${usesCharcoal ? '' : 'disabled'}" data-idx="${i}" title="${usesCharcoal ? 'Click to switch Synthium source' : 'Clear Stones need no charcoal'}">
+          <div class="toggle ${isBound ? 'bound' : ''} ${usesCharcoal ? '' : 'disabled'}" data-idx="${i}" title="${usesCharcoal ? 'Click to switch Synthium source' : 'Clear Stones need no charcoal'}">
             <div class="pill"></div>
-            <div class="opt trade">Trade</div>
+            <div class="opt unbound">Unbound</div>
             <div class="opt bound-lbl">Bound</div>
           </div>
+        </div>
+        <div class="num-col cost ${isBound ? 'bound-cost' : 'unbound-cost'}">
+          <div class="amt">${fmt(tierGold, 1)}g</div>
+          <div class="unit">tier cost</div>
         </div>
         <div class="num-col charcoal">
           <div class="amt">${usesCharcoal ? fmtInt(tierCharcoal) : '—'}</div>
           <div class="unit">charcoal</div>
-        </div>
-        <div class="num-col tokens ${tierTokens===0 ? 'zero' : ''}">
-          <div class="amt">${tierTokens > 0 ? fmtInt(tierTokens) : '—'}</div>
-          <div class="unit">tokens</div>
         </div>
       `;
 
@@ -499,7 +533,7 @@
     $(id).addEventListener('input', render);
   });
 
-  buildTargetOptions();
+  buildTierOptions();
   render();
 </script>
 </body>
