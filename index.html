@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Costume Ascension Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0c11;
+    --bg-soft: #10131a;
+    --panel: #141821;
+    --panel-line: #262c3a;
+    --text: #e9ebf2;
+    --text-dim: #8891a3;
+    --text-faint: #545c6f;
+    --ember: #e8b04b;
+    --ember-soft: #332a17;
+    --crystal: #6ee7d8;
+    --crystal-soft: #163330;
+    --danger: #c96a56;
+    --radius: 3px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, #182534 0%, transparent 60%),
+      radial-gradient(ellipse 700px 400px at 100% 10%, #1a2b2a 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    padding: 48px 20px 80px;
+  }
+
+  .wrap{ max-width: 880px; margin: 0 auto; }
+
+  header{ margin-bottom: 40px; }
+  .kicker{
+    font-size: 13px;
+    letter-spacing: .04em;
+    color: var(--ember);
+    margin: 0 0 10px;
+  }
+  h1{
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.1;
+    margin: 0 0 14px;
+    color: var(--text);
+  }
+  header p{
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 58ch;
+    margin: 0;
+  }
+
+  /* ---- settings bar ---- */
+  .settings{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--panel-line);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius);
+    margin: 36px 0 28px;
+    overflow: hidden;
+  }
+  .setting{
+    background: var(--panel);
+    padding: 14px 16px;
+  }
+  .setting label{
+    display:block;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .setting .field{
+    display:flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .setting .field span{ color: var(--text-faint); font-size: 13px; }
+  .setting input{
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 0;
+  }
+  .setting input:focus{ outline: none; }
+  .setting input::-webkit-outer-spin-button,
+  .setting input::-webkit-inner-spin-button{ -webkit-appearance: none; margin:0; }
+
+  /* ---- target row ---- */
+  .target-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .target-row .label{
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  select#targetTier{
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+  }
+
+  .legend{
+    display:flex;
+    gap: 18px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+  }
+  .legend .dot{
+    display:inline-block;
+    width:8px; height:8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    position: relative;
+    top: -1px;
+  }
+  .dot.ember{ background: var(--ember); }
+  .dot.crystal{ background: var(--crystal); }
+
+  /* ---- tier list ---- */
+  .tiers{
+    border-top: 1px solid var(--panel-line);
+  }
+  .tier{
+    display: grid;
+    grid-template-columns: 32px 1.5fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 4px;
+    border-bottom: 1px solid var(--panel-line);
+    transition: opacity .15s ease;
+  }
+  .tier.excluded{ opacity: .32; }
+
+  .tier .step{
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    color: var(--text-faint);
+  }
+
+  .tier .name-col .grade{
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .tier .name-col .stones{
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+  .tier .name-col .stones b{ color: var(--text-dim); font-weight: 600; }
+
+  .toggle-col{ display:flex; justify-content: flex-start; }
+  .toggle{
+    position: relative;
+    width: 132px;
+    height: 30px;
+    background: var(--bg-soft);
+    border: 1px solid var(--panel-line);
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    user-select: none;
+  }
+  .toggle.disabled{ cursor: default; opacity: .35; }
+  .toggle .pill{
+    position: absolute;
+    top: 2px; bottom: 2px;
+    width: 64px;
+    border-radius: 999px;
+    background: var(--ember-soft);
+    transition: transform .18s ease, background .18s ease;
+  }
+  .toggle.bound .pill{
+    transform: translateX(64px);
+    background: var(--crystal-soft);
+  }
+  .toggle .opt{
+    position: relative;
+    z-index: 1;
+    width: 50%;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+  .toggle .opt.trade{ color: var(--ember); }
+  .toggle .opt.bound-lbl{ color: var(--text-faint); }
+  .toggle.bound .opt.trade{ color: var(--text-faint); }
+  .toggle.bound .opt.bound-lbl{ color: var(--crystal); }
+
+  .num-col{ text-align: right; }
+  .num-col .amt{
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .num-col .unit{
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+  .num-col.charcoal .amt{ color: var(--ember); }
+  .num-col.tokens .amt{ color: var(--crystal); }
+  .num-col.tokens.zero .amt{ color: var(--text-faint); font-weight: 400; }
+
+  /* ---- summary ---- */
+  .summary{
+    margin-top: 32px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  .summary .stat .val{
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .summary .stat.gold .val{ color: #d9c087; }
+  .summary .stat.charcoal .val{ color: var(--ember); }
+  .summary .stat.tokens .val{ color: var(--crystal); }
+  .summary .stat .lbl{
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  footer{
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-faint);
+    line-height: 1.7;
+    max-width: 62ch;
+  }
+
+  @media (max-width: 640px){
+    .settings{ grid-template-columns: repeat(2,1fr); }
+    .tier{
+      grid-template-columns: 22px 1fr;
+      grid-template-areas:
+        "step name"
+        ".    toggle"
+        ".    nums";
+      row-gap: 10px;
+    }
+    .tier .step{ grid-area: step; }
+    .tier .name-col{ grid-area: name; }
+    .toggle-col{ grid-area: toggle; }
+    .tier .num-col{ grid-area: nums; text-align: left; display:flex; gap:18px; }
+    .tier .num-col:nth-of-type(3){ grid-area: nums; }
+    .num-col:not(:first-of-type){ margin-top: -6px; }
+    .summary{ grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">ArcheAge · Costume Ascension</p>
+    <h1>Costume Ascension Ledger</h1>
+    <p>Every grade needs Synthium Stones, and every stone burns charcoal to craft. Toggle each tier between tradeable Synthium (20 charcoal/stone) and bound Synthium (5 charcoal + 5 activity tokens/stone) to see how mixing the two changes your total spend.</p>
+  </header>
+
+  <div class="settings">
+    <div class="setting">
+      <label for="priceCharcoal">Charcoal price</label>
+      <div class="field"><span>g</span><input type="number" id="priceCharcoal" value="1.55" step="0.01" min="0"></div>
+    </div>
+    <div class="setting">
+      <label for="priceMisagon">Misagon's Crystal</label>
+      <div class="field"><span>g</span><input type="number" id="priceMisagon" value="35" step="0.5" min="0"></div>
+    </div>
+    <div class="setting">
+      <label for="priceClear">Clear Stone price</label>
+      <div class="field"><span>g</span><input type="number" id="priceClear" value="1.76" step="0.01" min="0"></div>
+    </div>
+    <div class="setting">
+      <label for="priceTable">Crafting table fee</label>
+      <div class="field"><span>g</span><input type="number" id="priceTable" value="9" step="0.5" min="0"></div>
+    </div>
+  </div>
+
+  <div class="target-row">
+    <div class="label">
+      Upgrade to
+      <select id="targetTier"></select>
+    </div>
+    <div class="legend">
+      <span><span class="dot ember"></span>Tradeable</span>
+      <span><span class="dot crystal"></span>Bound</span>
+    </div>
+  </div>
+
+  <div class="tiers" id="tierList"></div>
+
+  <div class="summary">
+    <div class="stat gold">
+      <div class="val" id="sumGold">—</div>
+      <div class="lbl">Total gold</div>
+    </div>
+    <div class="stat charcoal">
+      <div class="val" id="sumCharcoal">—</div>
+      <div class="lbl">Charcoal used</div>
+    </div>
+    <div class="stat tokens">
+      <div class="val" id="sumTokens">—</div>
+      <div class="lbl">Activity tokens used</div>
+    </div>
+    <div class="stat">
+      <div class="val" id="sumStones">—</div>
+      <div class="lbl">Synthium stones crafted</div>
+    </div>
+  </div>
+
+  <footer>
+    Stone counts per tier and base recipe (1 Clear + table fee → Vivid; 1 Vivid + Misagon + table fee → Lucid; 1 Lucid + 2 Misagon + table fee → Radiant) are taken from the source spreadsheet's Crafting Cost sheet. Grand and Rare use Clear Stones directly, which don't require charcoal, so those two tiers have no toggle. Adjust the prices above if your server's Auction House rates differ.
+  </footer>
+
+</div>
+
+<script>
+  const TIERS = [
+    { name: 'Grand',        stones: 4,  type: 'Clear'   },
+    { name: 'Rare',         stones: 8,  type: 'Clear'   },
+    { name: 'Arcane',       stones: 12, type: 'Vivid'   },
+    { name: 'Heroic',       stones: 16, type: 'Vivid'   },
+    { name: 'Unique',       stones: 20, type: 'Lucid'   },
+    { name: 'Celestial',    stones: 24, type: 'Lucid'   },
+    { name: 'Divine',       stones: 28, type: 'Lucid'   },
+    { name: 'Epic',         stones: 32, type: 'Lucid'   },
+    { name: 'Legendary',    stones: 36, type: 'Radiant' },
+    { name: 'Mythic',       stones: 40, type: 'Radiant' },
+    { name: 'Mythic 100%',  stones: 44, type: 'Radiant' },
+  ];
+
+  const CHARCOAL_TRADE = 20;
+  const CHARCOAL_BOUND = 5;
+  const TOKENS_BOUND = 5;
+
+  const state = {
+    mode: TIERS.map(t => t.type !== 'Clear'), // true = bound, false = tradeable
+    target: TIERS.length - 1,
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function prices(){
+    return {
+      charcoal: parseFloat($('priceCharcoal').value) || 0,
+      misagon: parseFloat($('priceMisagon').value) || 0,
+      clear: parseFloat($('priceClear').value) || 0,
+      table: parseFloat($('priceTable').value) || 0,
+    };
+  }
+
+  function stonePrice(type, bound, p){
+    // Recursive: whatever charcoal rate this row chose applies all the way
+    // down its ingredient chain (a bound Radiant assumes a bound-crafted
+    // Lucid inside it, which assumes a bound-crafted Vivid inside that).
+    const c = bound ? CHARCOAL_BOUND : CHARCOAL_TRADE;
+    if (type === 'Clear') return p.clear;
+    if (type === 'Vivid') return p.clear + p.table + c * p.charcoal;
+    if (type === 'Lucid') return stonePrice('Vivid', bound, p) + p.misagon + p.table + c * p.charcoal;
+    if (type === 'Radiant') return stonePrice('Lucid', bound, p) + 2 * p.misagon + p.table + c * p.charcoal;
+  }
+
+  function fmt(n, decimals=2){
+    return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+  function fmtInt(n){
+    return Math.round(n).toLocaleString();
+  }
+
+  function buildTargetOptions(){
+    const sel = $('targetTier');
+    sel.innerHTML = '';
+    TIERS.forEach((t, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = t.name;
+      if (i === state.target) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      state.target = parseInt(sel.value, 10);
+      render();
+    });
+  }
+
+  function render(){
+    const p = prices();
+    const list = $('tierList');
+    list.innerHTML = '';
+
+    let totalGold = 0, totalCharcoal = 0, totalTokens = 0, totalStones = 0;
+
+    TIERS.forEach((t, i) => {
+      const included = i <= state.target;
+      const usesCharcoal = t.type !== 'Clear';
+      const bound = state.mode[i];
+      const price = stonePrice(t.type, bound, p);
+      const tierGold = t.stones * price;
+      const tierCharcoal = usesCharcoal ? t.stones * (bound ? CHARCOAL_BOUND : CHARCOAL_TRADE) : 0;
+      const tierTokens = usesCharcoal && bound ? t.stones * TOKENS_BOUND : 0;
+
+      if (included){
+        totalGold += tierGold;
+        totalCharcoal += tierCharcoal;
+        totalTokens += tierTokens;
+        totalStones += t.stones;
+      }
+
+      const row = document.createElement('div');
+      row.className = 'tier' + (included ? '' : ' excluded');
+
+      row.innerHTML = `
+        <div class="step">${String(i+1).padStart(2,'0')}</div>
+        <div class="name-col">
+          <div class="grade">${t.name}</div>
+          <div class="stones"><b>${t.stones}</b> ${t.type} Stone${t.stones>1?'s':''}</div>
+        </div>
+        <div class="toggle-col">
+          <div class="toggle ${bound ? 'bound' : ''} ${usesCharcoal ? '' : 'disabled'}" data-idx="${i}" title="${usesCharcoal ? 'Click to switch Synthium source' : 'Clear Stones need no charcoal'}">
+            <div class="pill"></div>
+            <div class="opt trade">Trade</div>
+            <div class="opt bound-lbl">Bound</div>
+          </div>
+        </div>
+        <div class="num-col charcoal">
+          <div class="amt">${usesCharcoal ? fmtInt(tierCharcoal) : '—'}</div>
+          <div class="unit">charcoal</div>
+        </div>
+        <div class="num-col tokens ${tierTokens===0 ? 'zero' : ''}">
+          <div class="amt">${tierTokens > 0 ? fmtInt(tierTokens) : '—'}</div>
+          <div class="unit">tokens</div>
+        </div>
+      `;
+
+      list.appendChild(row);
+
+      if (usesCharcoal){
+        const toggleEl = row.querySelector('.toggle');
+        toggleEl.addEventListener('click', () => {
+          state.mode[i] = !state.mode[i];
+          render();
+        });
+      }
+    });
+
+    $('sumGold').textContent = fmt(totalGold) + 'g';
+    $('sumCharcoal').textContent = fmtInt(totalCharcoal);
+    $('sumTokens').textContent = fmtInt(totalTokens);
+    $('sumStones').textContent = fmtInt(totalStones);
+  }
+
+  ['priceCharcoal','priceMisagon','priceClear','priceTable'].forEach(id => {
+    $(id).addEventListener('input', render);
+  });
+
+  buildTargetOptions();
+  render();
+</script>
+</body>
+</html>
