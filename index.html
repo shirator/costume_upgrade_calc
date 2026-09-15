@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Costume Ascension Ledger</title>
+<title>ArcheAge Costume Craft Calculator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -168,8 +168,7 @@
   .tier .name-col .grade{
     font-family: 'Fraunces', serif;
     font-size: 18px;
-    font-weight: 500;
-    color: var(--text);
+    font-weight: 600;
   }
   .tier .name-col .stones{
     font-size: 12px;
@@ -243,7 +242,7 @@
     border-radius: var(--radius);
     padding: 24px 26px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 24px;
   }
   .summary .stat .val{
@@ -294,9 +293,7 @@
 <div class="wrap">
 
   <header>
-    <p class="kicker">ArcheAge · Costume Ascension</p>
-    <h1>Costume Ascension Ledger</h1>
-    <p>Every grade needs Synthium Stones, and every stone burns charcoal to craft. Toggle each tier between tradeable Synthium (20 charcoal/stone) and bound Synthium (5 charcoal + 5 activity tokens/stone) to see how mixing the two changes your total spend.</p>
+    <h1>ArcheAge Costume Craft Calculator</h1>
   </header>
 
   <div class="settings">
@@ -340,6 +337,10 @@
       <div class="val" id="sumCharcoal">—</div>
       <div class="lbl">Charcoal used</div>
     </div>
+    <div class="stat misagon">
+      <div class="val" id="sumMisagon">—</div>
+      <div class="lbl">Misagon used</div>
+    </div>
     <div class="stat tokens">
       <div class="val" id="sumTokens">—</div>
       <div class="lbl">Activity tokens used</div>
@@ -349,26 +350,22 @@
       <div class="lbl">Synthium stones crafted</div>
     </div>
   </div>
-
-  <footer>
-    Stone counts per tier and base recipe (1 Clear + table fee → Vivid; 1 Vivid + Misagon + table fee → Lucid; 1 Lucid + 2 Misagon + table fee → Radiant) are taken from the source spreadsheet's Crafting Cost sheet. Grand and Rare use Clear Stones directly, which don't require charcoal, so those two tiers have no toggle. Adjust the prices above if your server's Auction House rates differ.
-  </footer>
-
 </div>
 
 <script>
+  // Tabela com as cores fiéis às grades in-game (imagem)
   const TIERS = [
-    { name: 'Grand',        stones: 4,  type: 'Clear'   },
-    { name: 'Rare',         stones: 8,  type: 'Clear'   },
-    { name: 'Arcane',       stones: 12, type: 'Vivid'   },
-    { name: 'Heroic',       stones: 16, type: 'Vivid'   },
-    { name: 'Unique',       stones: 20, type: 'Lucid'   },
-    { name: 'Celestial',    stones: 24, type: 'Lucid'   },
-    { name: 'Divine',       stones: 28, type: 'Lucid'   },
-    { name: 'Epic',         stones: 32, type: 'Lucid'   },
-    { name: 'Legendary',    stones: 36, type: 'Radiant' },
-    { name: 'Mythic',       stones: 40, type: 'Radiant' },
-    { name: 'Mythic 100%',  stones: 44, type: 'Radiant' },
+    { name: 'Grand',        stones: 4,  type: 'Clear',   color: '#55b255' },
+    { name: 'Rare',         stones: 8,  type: 'Clear',   color: '#3083e5' },
+    { name: 'Arcane',       stones: 12, type: 'Vivid',   color: '#ad52d6' },
+    { name: 'Heroic',       stones: 16, type: 'Vivid',   color: '#e69214' },
+    { name: 'Unique',       stones: 20, type: 'Lucid',   color: '#f06433' },
+    { name: 'Celestial',    stones: 24, type: 'Lucid',   color: '#ee3c3c' },
+    { name: 'Divine',       stones: 28, type: 'Lucid',   color: '#d66e43' },
+    { name: 'Epic',         stones: 32, type: 'Lucid',   color: '#8ba6c1' },
+    { name: 'Legendary',    stones: 36, type: 'Radiant', color: '#e69600' },
+    { name: 'Mythic',       stones: 40, type: 'Radiant', color: '#e61d1d' },
+    { name: 'Mythic 100%',  stones: 44, type: 'Radiant', color: '#e61d1d' },
   ];
 
   const CHARCOAL_TRADE = 20;
@@ -391,10 +388,13 @@
     };
   }
 
+  function misagonPerStone(type) {
+    if (type === 'Lucid') return 1;
+    if (type === 'Radiant') return 3;
+    return 0;
+  }
+
   function stonePrice(type, bound, p){
-    // Recursive: whatever charcoal rate this row chose applies all the way
-    // down its ingredient chain (a bound Radiant assumes a bound-crafted
-    // Lucid inside it, which assumes a bound-crafted Vivid inside that).
     const c = bound ? CHARCOAL_BOUND : CHARCOAL_TRADE;
     if (type === 'Clear') return p.clear;
     if (type === 'Vivid') return p.clear + p.table + c * p.charcoal;
@@ -416,6 +416,7 @@
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = t.name;
+      opt.style.color = t.color; // Aplica a cor também no menu de seleção
       if (i === state.target) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -430,7 +431,7 @@
     const list = $('tierList');
     list.innerHTML = '';
 
-    let totalGold = 0, totalCharcoal = 0, totalTokens = 0, totalStones = 0;
+    let totalGold = 0, totalCharcoal = 0, totalTokens = 0, totalStones = 0, totalMisagon = 0;
 
     TIERS.forEach((t, i) => {
       const included = i <= state.target;
@@ -440,12 +441,14 @@
       const tierGold = t.stones * price;
       const tierCharcoal = usesCharcoal ? t.stones * (bound ? CHARCOAL_BOUND : CHARCOAL_TRADE) : 0;
       const tierTokens = usesCharcoal && bound ? t.stones * TOKENS_BOUND : 0;
+      const tierMisagon = t.stones * misagonPerStone(t.type);
 
       if (included){
         totalGold += tierGold;
         totalCharcoal += tierCharcoal;
         totalTokens += tierTokens;
         totalStones += t.stones;
+        totalMisagon += tierMisagon;
       }
 
       const row = document.createElement('div');
@@ -454,7 +457,7 @@
       row.innerHTML = `
         <div class="step">${String(i+1).padStart(2,'0')}</div>
         <div class="name-col">
-          <div class="grade">${t.name}</div>
+          <div class="grade" style="color: ${t.color}">${t.name}</div>
           <div class="stones"><b>${t.stones}</b> ${t.type} Stone${t.stones>1?'s':''}</div>
         </div>
         <div class="toggle-col">
@@ -485,10 +488,11 @@
       }
     });
 
-    $('sumGold').textContent = fmt(totalGold) + 'g';
+    $('sumGold').textContent = fmt(totalGold, 0) + 'g';
     $('sumCharcoal').textContent = fmtInt(totalCharcoal);
     $('sumTokens').textContent = fmtInt(totalTokens);
     $('sumStones').textContent = fmtInt(totalStones);
+    $('sumMisagon').textContent = fmtInt(totalMisagon);
   }
 
   ['priceCharcoal','priceMisagon','priceClear','priceTable'].forEach(id => {
